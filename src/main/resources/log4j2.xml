@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--Configuration后面的status,这个用于设置log4j2自身内部的信息输出,可以不设置,当设置成trace时,你会看到log4j2内部各种详细输出-->
+<!--monitorInterval:定时检测配置文件的修改,有变化则自动重新加载配置,时间单位为秒,最小间隔为30s -->
+<!--主日志文件${FLINK_LOG_DIR}/flink-${FLINK_IDENT_STRING}-${DAEMON}-${id}-${HOSTNAME}-->
+<!--对应的环境变量为log.flink_dir,log.flink_ident,log.flink_daemon,log.flink_id,log.flink_hostname-->
+<Configuration status="warn" monitorInterval="60">
+    <!--properties:设置全局变量 -->
+    <properties>
+        <Property name="LOG_PATTERN">
+            <!--pattern:日期,线程名,日志名称,日志信息,换行 -->
+            %d{yyyy-MM-dd HH:mm:ss,SSS} %-5p %-60c %x - %m%n
+        </Property>
+    </properties>
+
+    <!--Appenders:定义日志输出目的地，内容和格式等 -->
+    <Appenders>
+        <Console name="ConsoleAppender" target="SYSTEM_OUT">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+        </Console>
+        <!--输入错误级别日志-->
+        <RollingFile name="MainAppender" fileName="${sys:log.file}"
+                                 filePattern="${sys:log.file}.%i">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="${env:MAX_LOG_FILE_NUMBER:-10}"/>
+        </RollingFile>
+        <!--输入错误级别日志-->
+        <RollingFile name="ErrorAppender" fileName="${sys:log.file}.error"
+                                 filePattern="${sys:log.file}.error.%i">
+            <PatternLayout pattern="${LOG_PATTERN}"/>
+            <Filters>
+                <MarkerFilter marker="error_marker" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="${env:MAX_LOG_FILE_NUMBER:-10}"/>
+        </RollingFile>
+
+        <!--消息跟踪日志-->
+        <RollingFile name="TraceAppender" fileName="${sys:log.file}.trace"
+                                 filePattern="${sys:log.file}.trace.%i">
+            <JsonTemplateLayout charset="utf-8" stackTraceEnabled="false"/>
+            <Filters>
+                <MarkerFilter marker="trace_marker" onMatch="ACCEPT" onMismatch="DENY"/>
+            </Filters>
+            <Policies>
+                <OnStartupTriggeringPolicy/>
+                <SizeBasedTriggeringPolicy size="100MB"/>
+            </Policies>
+            <DefaultRolloverStrategy max="${env:MAX_LOG_FILE_NUMBER:-10}"/>
+        </RollingFile>
+        <!-- 异步Appender,通过配置bufferSize和includeLocation等属性异步输出可以一定程度上减轻程序运行时的日志压力-->
+        <Async name="asyncTraceAppender" bufferSize="1024" includeLocation="false">
+            <AppenderRef ref="TraceAppender"/>
+        </Async>
+        <Async name="asyncErrorAppender" bufferSize="1024" includeLocation="false">
+            <AppenderRef ref="ErrorAppender"/>
+        </Async>
+    </Appenders>
+    <!--Loggers:定义日志级别和使用的Appenders -->
+    <Loggers>
+        <Logger name="com.yonyougov.yondif" level="INFO" additivity="false">
+            <AppenderRef ref="asyncTraceAppender"/>
+            <AppenderRef ref="asyncErrorAppender"/>
+        </Logger>
+        <Root level="INFO" additivity="false">
+            <AppenderRef ref="ConsoleAppender"/>
+            <AppenderRef ref="MainAppender"/>
+        </Root>
+    </Loggers>
+</Configuration>
