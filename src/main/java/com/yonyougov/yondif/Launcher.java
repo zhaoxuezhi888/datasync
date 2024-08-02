@@ -46,6 +46,6 @@ public class Launcher {
         } catch (Throwable throwable) {
             throw new YondifRuntimeException("作业启动失败", throwable);
         }
-        logger.info("作业名:{}，初始化成功", parameterTool.get("job_name"));
+        logger.info("作业名111:{}，初始化成功", parameterTool.get("job_name"));
     }
 }
