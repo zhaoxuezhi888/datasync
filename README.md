@@ -1,2 +1,0 @@
-# datasync
-通过flink接收kafka消息并同步到elasticsearch
